@@ -1,0 +1,75 @@
+# Dockerfile for AMD GPU support using ROCm
+# Base image with ROCm support
+FROM rocm/pytorch:rocm5.7_ubuntu22.04_py3.11_pytorch_2.1.1
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+ENV HSA_OVERRIDE_GFX_VERSION=10.3.0
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libgtk-3-0 \
+    libavcodec-dev \
+    libavformat-dev \
+    libswscale-dev \
+    libv4l-dev \
+    libxvidcore-dev \
+    libx264-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    libatlas-base-dev \
+    libtbb2 \
+    libtbb-dev \
+    libdc1394-22-dev \
+    wget \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN pip install --upgrade pip setuptools wheel
+
+# Note: PyTorch with ROCm is already installed in the base image
+# Install ONNX Runtime with DirectML for additional AMD GPU support
+RUN pip install --no-cache-dir \
+    onnxruntime>=1.15.0 \
+    onnxruntime-directml>=1.15.0
+
+# Copy requirements file (without torch/torchvision)
+COPY requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
+
+# Install Python dependencies (excluding torch/torchvision as they're already installed)
+RUN pip install --no-cache-dir -r requirements-cuda-docker.txt
+
+# Copy application code
+COPY . /app/
+
+# Create directories for models and data
+RUN mkdir -p /app/models /app/data /app/outputs /app/processed_videos
+
+# Set environment variables for ROCm
+ENV ROCM_PATH=/opt/rocm
+ENV PATH=$ROCM_PATH/bin:$PATH
+ENV LD_LIBRARY_PATH=$ROCM_PATH/lib:$LD_LIBRARY_PATH
+
+# Expose ports
+EXPOSE 8000 8501
+
+# Health check (check if ROCm is available)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import torch; print('ROCm available:', torch.cuda.is_available())" || exit 1
+
+# Default command (can be overridden)
+CMD ["python", "launch_gui.py"]
+

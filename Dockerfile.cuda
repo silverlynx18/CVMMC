@@ -1,0 +1,80 @@
+# Dockerfile for CUDA (NVIDIA GPU) support
+# Base image with CUDA 12.1 support
+FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+ENV CUDA_VISIBLE_DEVICES=0
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libgtk-3-0 \
+    libavcodec-dev \
+    libavformat-dev \
+    libswscale-dev \
+    libv4l-dev \
+    libxvidcore-dev \
+    libx264-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    libatlas-base-dev \
+    libtbb2 \
+    libtbb-dev \
+    libdc1394-22-dev \
+    wget \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symlink for python
+RUN ln -s /usr/bin/python3.11 /usr/bin/python
+
+# Upgrade pip
+RUN pip install --upgrade pip setuptools wheel
+
+# Install PyTorch with CUDA 12.1 support
+RUN pip install --no-cache-dir \
+    torch>=2.0.0 \
+    torchvision>=0.15.0 \
+    --index-url https://download.pytorch.org/whl/cu121
+
+# Copy requirements file (without torch/torchvision)
+COPY requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
+
+# Install Python dependencies (excluding torch/torchvision as they're already installed)
+RUN pip install --no-cache-dir -r requirements-cuda-docker.txt
+
+# Copy application code
+COPY . /app/
+
+# Create directories for models and data
+RUN mkdir -p /app/models /app/data /app/outputs /app/processed_videos
+
+# Set environment variables for CUDA
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Expose ports
+EXPOSE 8000 8501
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import torch; assert torch.cuda.is_available()" || exit 1
+
+# Default command (can be overridden)
+CMD ["python", "launch_gui.py"]
+
