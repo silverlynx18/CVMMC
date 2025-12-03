@@ -7,7 +7,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     CUDA_VISIBLE_DEVICES=0 \
-    PIP_NO_WARN_SCRIPT_LOCATION=1
+    PIP_NO_WARN_SCRIPT_LOCATION=1 \
+    PIP_ROOT_USER_ACTION=ignore
 
 # Set working directory
 WORKDIR /app
@@ -44,8 +45,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Upgrade pip first (must be done before using --root-user-action flag)
-# Then install PyTorch with CUDA support
+# Upgrade pip and install PyTorch with CUDA support in one layer
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     && pip install --no-cache-dir --root-user-action=ignore \
     torch>=2.0.0 \
@@ -53,14 +53,14 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     --index-url https://download.pytorch.org/whl/cu121
 
 # Copy requirements file and install dependencies
-# This copies from app-code/requirements-cuda-docker.txt in the repository root
-COPY app-code/requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
+# This copies from gcp-build/app-code/requirements-cuda-docker.txt in the repository root
+COPY gcp-build/app-code/requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
 RUN pip install --no-cache-dir --root-user-action=ignore -r requirements-cuda-docker.txt
 
-# Copy ALL application code from app-code directory to /app in container
+# Copy ALL application code from gcp-build/app-code directory to /app in container
 # This includes: app/, launch_gui.py, setup.py, config/, counting_zone.json, etc.
-# The COPY command copies the contents of app-code/ into /app/
-COPY app-code/ /app/
+# The COPY command copies the contents of gcp-build/app-code/ into /app/
+COPY gcp-build/app-code/ /app/
 
 # Ensure directories exist for models and data (models will be auto-downloaded)
 RUN mkdir -p /app/models /app/data /app/outputs /app/processed_videos
@@ -78,4 +78,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Default command - launch the GUI application
 CMD ["python", "launch_gui.py"]
-
