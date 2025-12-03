@@ -1,5 +1,4 @@
-# Google Cloud Build configuration for building Docker images
-# This file builds both CUDA and AMD GPU versions of the application
+# Google Cloud Build configuration for building CUDA Docker image only
 
 steps:
   # Build CUDA (NVIDIA GPU) image
@@ -16,21 +15,7 @@ steps:
       - '.'
     timeout: '3600s'
 
-  # Build AMD GPU image
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'build-amd'
-    args:
-      - 'build'
-      - '--tag'
-      - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:amd-${SHORT_SHA}'
-      - '--tag'
-      - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:amd-latest'
-      - '--file'
-      - 'Dockerfile.amd'
-      - '.'
-    timeout: '3600s'
-
-  # Push CUDA image (all tags)
+  # Push CUDA image with commit SHA tag
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-cuda'
     args:
@@ -38,6 +23,7 @@ steps:
       - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-${SHORT_SHA}'
     waitFor: ['build-cuda']
 
+  # Push CUDA image with latest tag
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-cuda-latest'
     args:
@@ -45,39 +31,20 @@ steps:
       - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-latest'
     waitFor: ['build-cuda']
 
-  # Push AMD image (all tags)
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-amd'
-    args:
-      - 'push'
-      - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:amd-${SHORT_SHA}'
-    waitFor: ['build-amd']
-
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-amd-latest'
-    args:
-      - 'push'
-      - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:amd-latest'
-    waitFor: ['build-amd']
-
-# Substitution variables (set these in Cloud Build triggers or via command line)
+# Substitution variables
 substitutions:
-  _GCR_REGION: 'us-central1'  # Change to your preferred region
-  _GCR_REPOSITORY: 'cv-mm-images'  # Change to your Artifact Registry repository name
+  _GCR_REGION: 'us-central1'
+  _GCR_REPOSITORY: 'cv-mm-images'
 
 # Build options
 options:
-  machineType: 'E2_HIGHCPU_8'  # Use high-CPU machine for faster builds
+  machineType: 'E2_HIGHCPU_8'
   logging: CLOUD_LOGGING_ONLY
 
 # Timeout for entire build
-timeout: '7200s'  # 2 hours
+timeout: '7200s'
 
 # Images to be pushed to registry
-# Note: Using --all-tags in push steps will push all tags for each image
 images:
   - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-${SHORT_SHA}'
   - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-latest'
-  - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:amd-${SHORT_SHA}'
-  - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:amd-latest'
-
