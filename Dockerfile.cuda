@@ -54,13 +54,14 @@ RUN pip install --no-cache-dir --root-user-action=ignore \
     --index-url https://download.pytorch.org/whl/cu121
 
 # Copy requirements file and install dependencies
-COPY requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
+COPY gcp-build/app-code/requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
 RUN pip install --no-cache-dir --root-user-action=ignore -r requirements-cuda-docker.txt
 
 # Copy application code (this should be last as it changes most frequently)
-COPY . /app/
+# Copy everything from app-code directory to /app in container
+COPY gcp-build/app-code/ /app/
 
-# Create directories for models and data
+# Ensure directories exist (they should already exist from COPY, but ensure they're there)
 RUN mkdir -p /app/models /app/data /app/outputs /app/processed_videos
 
 # Set CUDA environment variables

@@ -1,7 +1,7 @@
 # Google Cloud Build configuration for building CUDA Docker image only
 
 steps:
-  # Build CUDA (NVIDIA GPU) image
+  # Build CUDA (NVIDIA GPU) image with both SHA and latest tags
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-cuda'
     args:
@@ -11,25 +11,9 @@ steps:
       - '--tag'
       - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-latest'
       - '--file'
-      - 'Dockerfile.cuda'
+      - 'gcp-build/Dockerfile.cuda'
       - '.'
     timeout: '3600s'
-
-  # Push CUDA image with commit SHA tag
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-cuda'
-    args:
-      - 'push'
-      - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-${SHORT_SHA}'
-    waitFor: ['build-cuda']
-
-  # Push CUDA image with latest tag
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-cuda-latest'
-    args:
-      - 'push'
-      - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-latest'
-    waitFor: ['build-cuda']
 
 # Substitution variables
 substitutions:
@@ -44,7 +28,7 @@ options:
 # Timeout for entire build
 timeout: '7200s'
 
-# Images to be pushed to registry
+# Cloud Build will automatically push these images after the build completes
 images:
   - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-${SHORT_SHA}'
   - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-latest'
