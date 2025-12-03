@@ -52,33 +52,47 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     --index-url https://download.pytorch.org/whl/cpu
 
 # Copy requirements file and install dependencies
-# Use app-code/ directory (same as Dockerfile.cuda)
-COPY app-code/requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
+# Use gcp-build/app-code/ path (matches repository structure and Dockerfile.cuda)
+COPY gcp-build/app-code/requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
 RUN pip install --no-cache-dir --root-user-action=ignore -r requirements-cuda-docker.txt
 
-# Copy ALL application code from app-code directory to /app in container
-# This matches Dockerfile.cuda which works successfully
-COPY app-code/ /app/
+# Copy ALL application code from gcp-build/app-code directory to /app in container
+# This matches Dockerfile.cuda structure
+COPY gcp-build/app-code/ /app/
 
 # Ensure directories exist for models and data
 RUN mkdir -p /app/models /app/data /app/outputs /app/processed_videos
 
-# Pre-download YOLO model during build (so users don't need to download at runtime)
-# This downloads the model and copies it to /app/models/
+# Pre-download YOLO models during build (so users don't need to download at runtime)
+# Stage 1 uses yolov8n (nano), Stage 2 uses yolov8m (medium)
+# This downloads both models and copies them to /app/models/
 RUN python -c "\
 import os; \
 os.makedirs('/app/models', exist_ok=True); \
 from ultralytics import YOLO; \
-model = YOLO('yolov8n.pt'); \
 import shutil; \
 import glob; \
 ultralytics_cache = os.path.expanduser('~/.ultralytics'); \
-model_files = glob.glob(os.path.join(ultralytics_cache, '**/yolov8n.pt'), recursive=True); \
-if model_files: \
-    shutil.copy2(model_files[0], '/app/models/yolov8n.pt'); \
-    print('✅ Model copied to /app/models/yolov8n.pt'); \
+\
+# Download and copy yolov8n.pt (Stage 1) \
+print('Downloading YOLOv8n model (Stage 1)...'); \
+model_n = YOLO('yolov8n.pt'); \
+model_files_n = glob.glob(os.path.join(ultralytics_cache, '**/yolov8n.pt'), recursive=True); \
+if model_files_n: \
+    shutil.copy2(model_files_n[0], '/app/models/yolov8n.pt'); \
+    print('✅ yolov8n.pt copied to /app/models/yolov8n.pt'); \
 else: \
-    print('⚠️  Model downloaded but not found in cache - will be available at runtime'); \
+    print('⚠️  yolov8n.pt downloaded but not found in cache'); \
+\
+# Download and copy yolov8m.pt (Stage 2) \
+print('Downloading YOLOv8m model (Stage 2)...'); \
+model_m = YOLO('yolov8m.pt'); \
+model_files_m = glob.glob(os.path.join(ultralytics_cache, '**/yolov8m.pt'), recursive=True); \
+if model_files_m: \
+    shutil.copy2(model_files_m[0], '/app/models/yolov8m.pt'); \
+    print('✅ yolov8m.pt copied to /app/models/yolov8m.pt'); \
+else: \
+    print('⚠️  yolov8m.pt downloaded but not found in cache'); \
 "
 
 # Mark setup as complete so SetupManager doesn't run first-time setup at runtime
