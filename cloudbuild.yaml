@@ -1,4 +1,4 @@
-# Google Cloud Build configuration for building CUDA Docker image only
+# Google Cloud Build configuration for building CUDA and CPU Docker images
 
 steps:
   # Build CUDA (NVIDIA GPU) image with both SHA and latest tags
@@ -12,6 +12,20 @@ steps:
       - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-latest'
       - '--file'
       - 'Dockerfile.cuda'
+      - '.'
+    timeout: '3600s'
+
+  # Build CPU-only image with both SHA and latest tags
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-cpu'
+    args:
+      - 'build'
+      - '--tag'
+      - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cpu-${SHORT_SHA}'
+      - '--tag'
+      - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cpu-latest'
+      - '--file'
+      - 'Dockerfile.cpu'
       - '.'
     timeout: '3600s'
 
@@ -32,3 +46,5 @@ timeout: '7200s'
 images:
   - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-${SHORT_SHA}'
   - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-latest'
+  - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cpu-${SHORT_SHA}'
+  - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cpu-latest'
