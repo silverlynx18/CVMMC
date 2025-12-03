@@ -17,7 +17,7 @@ steps:
 
 # Substitution variables
 substitutions:
-  _GCR_REGION: 'us-central1'
+  _GCR_REGION: 'us-east1'
   _GCR_REPOSITORY: 'cv-mm-images'
 
 # Build options
