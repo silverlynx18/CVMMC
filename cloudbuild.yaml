@@ -11,7 +11,7 @@ steps:
       - '--tag'
       - '${_GCR_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GCR_REPOSITORY}/cv-mm:cuda-latest'
       - '--file'
-      - 'gcp-build/Dockerfile.cuda'
+      - 'Dockerfile.cuda'
       - '.'
     timeout: '3600s'
 
