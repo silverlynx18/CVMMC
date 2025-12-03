@@ -56,10 +56,20 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
 COPY requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
 RUN pip install --no-cache-dir --root-user-action=ignore -r requirements-cuda-docker.txt
 
-# Copy ALL application code from gcp-build/app-code directory to /app in container
-# This includes: app/, launch_gui.py, setup.py, config/, counting_zone.json, etc.
-# The COPY command copies the contents of gcp-build/app-code/ into /app/
-COPY gcp-build/app-code/ /app/
+# Copy application code from root-level directories
+# Copy main application package
+COPY app/ /app/app/
+
+# Copy entry point and setup files
+COPY launch_gui.py /app/launch_gui.py
+COPY setup.py /app/setup.py
+
+# Copy configuration files
+COPY config/ /app/config/
+COPY counting_zone.json /app/counting_zone.json
+
+# Copy scripts directory
+COPY scripts/ /app/scripts/
 
 # Ensure directories exist for models and data (models will be auto-downloaded)
 RUN mkdir -p /app/models /app/data /app/outputs /app/processed_videos
