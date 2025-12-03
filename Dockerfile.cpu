@@ -52,8 +52,8 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     --index-url https://download.pytorch.org/whl/cpu
 
 # Copy requirements file and install dependencies
-# This copies from gcp-build/app-code/requirements-cuda-docker.txt in the repository root
-COPY gcp-build/app-code/requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
+# Use root-level requirements file (also available at gcp-build/app-code/requirements-cuda-docker.txt)
+COPY requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
 RUN pip install --no-cache-dir --root-user-action=ignore -r requirements-cuda-docker.txt
 
 # Copy ALL application code from gcp-build/app-code directory to /app in container
