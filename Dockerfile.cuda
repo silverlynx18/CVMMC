@@ -7,8 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     CUDA_VISIBLE_DEVICES=0 \
-    PIP_NO_WARN_SCRIPT_LOCATION=1 \
-    PIP_ROOT_USER_ACTION=ignore
+    PIP_NO_WARN_SCRIPT_LOCATION=1
 
 # Set working directory
 WORKDIR /app
@@ -45,9 +44,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Upgrade pip and install PyTorch with CUDA support in one layer
-RUN pip install --no-cache-dir --root-user-action=ignore \
-    --upgrade pip setuptools wheel \
+# Upgrade pip first (must be done before using --root-user-action flag)
+# Then install PyTorch with CUDA support
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     && pip install --no-cache-dir --root-user-action=ignore \
     torch>=2.0.0 \
     torchvision>=0.15.0 \
@@ -63,19 +62,20 @@ RUN pip install --no-cache-dir --root-user-action=ignore -r requirements-cuda-do
 # The COPY command copies the contents of app-code/ into /app/
 COPY app-code/ /app/
 
-# Ensure directories exist (they should already exist from COPY, but ensure they're there)
+# Ensure directories exist for models and data (models will be auto-downloaded)
 RUN mkdir -p /app/models /app/data /app/outputs /app/processed_videos
 
 # Set CUDA environment variables
 ENV NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
-# Expose ports
+# Expose ports for API and dashboard
 EXPOSE 8000 8501
 
-# Health check
+# Health check to verify CUDA is available
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import torch; assert torch.cuda.is_available()" || exit 1
 
-# Default command
+# Default command - launch the GUI application
 CMD ["python", "launch_gui.py"]
+
