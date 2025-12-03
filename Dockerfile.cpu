@@ -52,14 +52,13 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     --index-url https://download.pytorch.org/whl/cpu
 
 # Copy requirements file and install dependencies
-# Use root-level requirements file (also available at gcp-build/app-code/requirements-cuda-docker.txt)
-COPY requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
+# Use app-code/ directory (same as Dockerfile.cuda)
+COPY app-code/requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
 RUN pip install --no-cache-dir --root-user-action=ignore -r requirements-cuda-docker.txt
 
-# Copy ALL application code from gcp-build/app-code directory to /app in container
-# This includes: app/, launch_gui.py, setup.py, config/, counting_zone.json, etc.
-# The COPY command copies the contents of gcp-build/app-code/ into /app/
-COPY gcp-build/app-code/ /app/
+# Copy ALL application code from app-code directory to /app in container
+# This matches Dockerfile.cuda which works successfully
+COPY app-code/ /app/
 
 # Ensure directories exist for models and data (models will be auto-downloaded)
 RUN mkdir -p /app/models /app/data /app/outputs /app/processed_videos
@@ -73,4 +72,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Default command - launch the GUI application
 CMD ["python", "launch_gui.py"]
-
