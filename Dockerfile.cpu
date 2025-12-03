@@ -52,13 +52,13 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     --index-url https://download.pytorch.org/whl/cpu
 
 # Copy requirements file and install dependencies
-# Use gcp-build/app-code/ path (matches repository structure and Dockerfile.cuda)
-COPY gcp-build/app-code/requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
+# Use app-code/ path (matches GitHub repository structure - files are in root)
+COPY app-code/requirements-cuda-docker.txt /app/requirements-cuda-docker.txt
 RUN pip install --no-cache-dir --root-user-action=ignore -r requirements-cuda-docker.txt
 
-# Copy ALL application code from gcp-build/app-code directory to /app in container
-# This matches Dockerfile.cuda structure
-COPY gcp-build/app-code/ /app/
+# Copy ALL application code from app-code directory to /app in container
+# This matches root Dockerfile.cpu structure
+COPY app-code/ /app/
 
 # Ensure directories exist for models and data
 RUN mkdir -p /app/models /app/data /app/outputs /app/processed_videos
