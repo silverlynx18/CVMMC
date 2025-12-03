@@ -60,8 +60,29 @@ RUN pip install --no-cache-dir --root-user-action=ignore -r requirements-cuda-do
 # This matches Dockerfile.cuda which works successfully
 COPY app-code/ /app/
 
-# Ensure directories exist for models and data (models will be auto-downloaded)
+# Ensure directories exist for models and data
 RUN mkdir -p /app/models /app/data /app/outputs /app/processed_videos
+
+# Pre-download YOLO model during build (so users don't need to download at runtime)
+# This downloads the model and copies it to /app/models/
+RUN python -c "\
+import os; \
+os.makedirs('/app/models', exist_ok=True); \
+from ultralytics import YOLO; \
+model = YOLO('yolov8n.pt'); \
+import shutil; \
+import glob; \
+ultralytics_cache = os.path.expanduser('~/.ultralytics'); \
+model_files = glob.glob(os.path.join(ultralytics_cache, '**/yolov8n.pt'), recursive=True); \
+if model_files: \
+    shutil.copy2(model_files[0], '/app/models/yolov8n.pt'); \
+    print('✅ Model copied to /app/models/yolov8n.pt'); \
+else: \
+    print('⚠️  Model downloaded but not found in cache - will be available at runtime'); \
+"
+
+# Mark setup as complete so SetupManager doesn't run first-time setup at runtime
+RUN touch /app/.setup_complete
 
 # Expose ports for API and dashboard
 EXPOSE 8000 8501
